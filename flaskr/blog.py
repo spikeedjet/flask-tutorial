@@ -18,8 +18,8 @@ def index():
         ' FROM post p JOIN user u ON p.author_id = u.id'
         ' ORDER BY created DESC'
     ).fetchall()
-    print(posts)
-    return render_template('blog/index.html', posts=posts)
+    tags = db.execute('SELECT * FROM tags').fetchall()
+    return render_template('blog/index.html', posts=posts,tags = tags)
 
 @bp.route('/create', methods=('GET', 'POST'))
 @login_required
@@ -27,24 +27,86 @@ def create():
     if request.method == 'POST':
         title = request.form['title']
         body = request.form['body']
+        tags = request.form.getlist('tags')
+        new_tag = request.form['new_tag'].strip()
         error = None
 
         if not title:
             error = 'Title is required.'
+        elif not body:
+            error = 'Body is required.'
 
         if error is not None:
             flash(error)
         else:
             db = get_db()
-            db.execute(
-                'INSERT INTO post (title, body, author_id)'
-                ' VALUES (?, ?, ?)',
-                (title, body, g.user['id'])
-            )
-            db.commit()
-            return redirect(url_for('blog.index'))
+            try:
+                cursor = db.cursor()
 
-    return render_template('blog/create.html')
+                # Insert into post table
+                cursor.execute(
+                    'INSERT INTO post (title, body, author_id) VALUES (?, ?, ?)',
+                    (title, body, g.user['id'])
+                )
+                post_id = cursor.lastrowid  # 获取新插入的 post 记录的 id
+
+                # Insert tags (existing and new)
+                for tag_name in tags:
+                    # Check if tag exists
+                    tag = db.execute(
+                        'SELECT id FROM tags WHERE name = ?',
+                        (tag_name,)
+                    ).fetchone()
+
+                    if tag is None:
+                        flash(f"Tag '{tag_name}' does not exist. Please choose from existing tags.")
+                        return render_template('blog/create.html', tags=tags)
+
+                    tag_id = tag['id']
+
+                    # Insert into post_tags
+                    cursor.execute(
+                        'INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)',
+                        (post_id, tag_id)
+                    )
+
+                # Insert new tag if provided
+                if new_tag:
+                    # Check if new_tag already exists
+                    tag = db.execute(
+                        'SELECT id FROM tags WHERE name = ?',
+                        (new_tag,)
+                    ).fetchone()
+
+                    if tag is None:
+                        # Insert new tag if it does not exist
+                        cursor.execute(
+                            'INSERT INTO tags (name) VALUES (?)',
+                            (new_tag,)
+                        )
+                        tag_id = cursor.lastrowid
+                    else:
+                        tag_id = tag['id']
+
+                    # Insert into post_tags
+                    cursor.execute(
+                        'INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)',
+                        (post_id, tag_id)
+                    )
+
+                db.commit()
+                return redirect(url_for('blog.index'))
+
+            except db.IntegrityError as e:
+                db.rollback()
+                flash(f"Error occurred: {str(e)}")
+
+            finally:
+                cursor.close()
+
+    db = get_db()
+    tags = db.execute('SELECT * FROM tags').fetchall()
+    return render_template('blog/create.html', tags=tags)
 
 def get_post(id, check_author=True):
     post = get_db().execute(
@@ -164,16 +226,3 @@ def like_post(id):
     else:
         # 如果用户未登录，可以返回错误或跳转到登录页面
         return render_template('auth/login.html')
-
-# @bp.route('/post/<int:id>/comment', methods=('POST','GET'))
-# @login_required
-# def comment(id):
-#     db = get_db()
-#     if request.method == 'POST':
-#         comment = request.form['comment']
-#         user_id = session['user_id']
-#         db.execute('INSERT INTO comments (user_id, post_id, comment) VALUES (?,?,?)', (user_id, id, comment))
-#         db.commit()
-#         return redirect(url_for('blog.details'))
-#     else:
-#         return render_template('blog/comment.html')

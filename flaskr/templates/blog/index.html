@@ -24,14 +24,19 @@
             <form action="{{ url_for('blog.like_post',id=post['id']) }}">
                 <button type="submit">Like ({{ post['likes'] }})</button>
             </form>
-            
         </div>
-
       </header>
-      <p class="body">{{ post['body'] }}</p>
+      <p>{{ post['body'][:100] }}...</p>
     </article>
     {% if not loop.last %}
       <hr>
     {% endif %}
   {% endfor %}
+  
+  <label for="tags">Tags</label>
+  <select name="tags" id="tags" multiple>
+      {% for tag in tags %}
+          <option value="{{ tag['name'] }}">{{ tag['name'] }}</option>
+      {% endfor %}
+  </select>
 {% endblock %}

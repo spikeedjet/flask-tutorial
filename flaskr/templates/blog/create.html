@@ -10,6 +10,20 @@
     <input name="title" id="title" value="{{ request.form['title'] }}" required>
     <label for="body">Body</label>
     <textarea name="body" id="body">{{ request.form['body'] }}</textarea>
+    <label for="body">tages</label>
+
+    <label for="tags">Tags</label>
+    <div>
+      <label for="tags">Tags</label>
+      <select name="tags" id="tags" multiple>
+          {% for tag in tags %}
+              <option value="{{ tag['name'] }}">{{ tag['name'] }}</option>
+          {% endfor %}
+      </select>
+      <input type="text" name="new_tag" id="new_tag" placeholder="New tag">
+  </div>
+  
+
     <input type="submit" value="Save">
   </form>
 {% endblock %}

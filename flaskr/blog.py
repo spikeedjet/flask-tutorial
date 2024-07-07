@@ -99,11 +99,39 @@ def delete(id):
     db.commit()
     return redirect(url_for('blog.index'))
 
-@bp.route('/post/<int:id>', methods=('GET',))
+@bp.route('/post/<int:id>', methods=('GET','POST'))
 def details(id):
-    db = get_db()
     post = get_post(id)
-    return render_template('blog/details.html', post=post)
+    db = get_db()
+    if 'user_id' in session:
+        user_id = session['user_id']
+        user_like = db.execute(
+            'SELECT id FROM likes WHERE user_id = ? AND post_id = ?',(user_id, id)
+            ).fetchone()
+
+    comments = db.execute(
+        'SELECT c.id, c.body, c.created, u.username FROM comments c'
+        ' JOIN user u ON c.user_id = u.id'
+        ' WHERE c.post_id = ?'
+        ' ORDER BY c.created ASC',
+        (id,)
+    ).fetchall()
+    if request.method == 'POST':
+        if 'user_id' in session:
+            user_id = session['user_id']
+            comment_body = request.form['body']
+            db = get_db()
+            db.execute(
+                'INSERT INTO comments (post_id, user_id, body) VALUES (?, ?, ?)',
+                (id, user_id, comment_body)
+            )
+            db.commit()
+            return redirect(url_for('blog.details', id=id))
+        else:
+            return render_template('auth/login.html')
+
+    return render_template('blog/details.html', post=post, comments=comments,id=id)
+
 
 @bp.route('/post/<int:id>/like', methods=('POST','GET'))
 @login_required
@@ -131,10 +159,21 @@ def like_post(id):
             pass
         finally:
             pass
-        return redirect(url_for('blog.index'))
+        return redirect(url_for('blog.index', id=id))
     
     else:
         # 如果用户未登录，可以返回错误或跳转到登录页面
         return render_template('auth/login.html')
 
- 
+# @bp.route('/post/<int:id>/comment', methods=('POST','GET'))
+# @login_required
+# def comment(id):
+#     db = get_db()
+#     if request.method == 'POST':
+#         comment = request.form['comment']
+#         user_id = session['user_id']
+#         db.execute('INSERT INTO comments (user_id, post_id, comment) VALUES (?,?,?)', (user_id, id, comment))
+#         db.commit()
+#         return redirect(url_for('blog.details'))
+#     else:
+#         return render_template('blog/comment.html')

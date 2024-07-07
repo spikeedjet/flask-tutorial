@@ -1,5 +1,7 @@
 DROP TABLE IF EXISTS user;
 DROP TABLE IF EXISTS post;
+DROP TABLE IF EXISTS likes;
+DROP TABLE IF EXISTS comments;
 
 CREATE TABLE user (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -14,7 +16,9 @@ CREATE TABLE post (
   title TEXT NOT NULL,
   body TEXT NOT NULL,
   likes INTEGER DEFAULT 0,
+  comments TEXT,
   FOREIGN KEY (author_id) REFERENCES user (id)
+
 );
 
 CREATE TABLE likes (
@@ -22,6 +26,16 @@ CREATE TABLE likes (
   user_id INTEGER,
   post_id INTEGER,
   UNIQUE(user_id, post_id),
+  FOREIGN KEY (user_id) REFERENCES user(id),
+  FOREIGN KEY (post_id) REFERENCES post(id)
+);
+
+CREATE TABLE comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,
+  post_id INTEGER,
+  body TEXT NOT NULL,
+  created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES user(id),
   FOREIGN KEY (post_id) REFERENCES post(id)
 );

@@ -1,5 +1,5 @@
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, url_for
+    Blueprint, flash, g, redirect, render_template, request, url_for, session,jsonify
 )
 from werkzeug.exceptions import abort
 
@@ -226,3 +226,17 @@ def like_post(id):
     else:
         # 如果用户未登录，可以返回错误或跳转到登录页面
         return render_template('auth/login.html')
+
+@bp.route('/posts_by_tag/<int:tag_id>', methods=['GET'])
+def get_posts_by_tag(tag_id):
+    conn = get_db()
+    posts = conn.execute('''
+        SELECT post.id, post.title, post.body, post.created, user.username
+        FROM post
+        JOIN post_tags ON post.id = post_tags.post_id
+        JOIN tags ON post_tags.tag_id = tags.id
+        JOIN user ON post.author_id = user.id
+        WHERE tags.id = ?''', 
+        (tag_id,)).fetchall()    
+    posts_list = [dict(post) for post in posts]
+    return jsonify(posts_list)

@@ -39,4 +39,47 @@
           <option value="{{ tag['name'] }}">{{ tag['name'] }}</option>
       {% endfor %}
   </select>
+
+ 
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Posts by Tag</title>
+      <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  </head>
+  <body>
+      <div id="tags">
+          <button onclick="fetchPostsByTag(1)">Python</button>
+          <button onclick="fetchPostsByTag(2)">Flask</button>
+          <button onclick="fetchPostsByTag(3)">Web Development</button>
+      </div>
+  
+      <div id="posts">
+          <!-- Posts will be displayed here -->
+      </div>
+  
+      <script>
+          function fetchPostsByTag(tagId) {
+              $.get(`/posts_by_tag/${tagId}`, function(data) {
+                  $('#posts').empty();
+                  data.forEach(function(post) {
+                      $('#posts').append(`
+                          <div class="post">
+                              <h2>${post.title}</h2>
+                              <p>${post.body}</p>
+                              <small>by ${post.username} on ${post.created}</small>
+                          </div>
+                      `);
+                  });
+              });
+          }
+      </script>
+  </body>
+  </html>
+  
+
+
+
 {% endblock %}
